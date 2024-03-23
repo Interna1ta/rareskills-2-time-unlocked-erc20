@@ -1,6 +1,8 @@
 name: test
 
-on: workflow_dispatch
+on:
+  pull_request:
+    branches: [main]
 
 env:
   FOUNDRY_PROFILE: ci
@@ -13,7 +15,7 @@ jobs:
     name: Foundry project
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v3
         with:
           submodules: recursive
 
