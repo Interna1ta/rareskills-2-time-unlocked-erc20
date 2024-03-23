@@ -5,11 +5,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {MyERC20} from "./MyERC20.sol";
 error TimeUnlockedERC20__AmountNotEnough(string message);
 error TimeUnlockedERC20__WithoutDeposit(string message);
-error TimeUnlockedERC20__NotEnoughMoney(
-    string message,
-    uint256 amount,
-    uint256 currentAmount
-);
+error TimeUnlockedERC20__NotEnoughMoney(string message);
 error TimeUnlockedERC20__DepositFailed(string message);
 error TimeUnlockedERC20__PaymentFailed(string message);
 
@@ -59,7 +55,7 @@ contract TimeUnlockedERC20 is MyERC20 {
         );
         s_userToTokenToDeposit[_receiver][_token].timestamp = block.timestamp;
 
-        emit DepositCreated(_receiver, _token, _amount, block.timestamp);
+        emit DepositCreated(_receiver, _token, divideByDecimals(decimals, _amount), block.timestamp);
     }
 
     function withdraw(address _token) public {
@@ -81,16 +77,14 @@ contract TimeUnlockedERC20 is MyERC20 {
 
         if (currentAmount < amountToWithdraw) {
             revert TimeUnlockedERC20__NotEnoughMoney(
-                "You have no enough money to withdraw",
-                amountToWithdraw,
-                currentAmount
+                "You have no enough money to withdraw"
             );
         }
         IERC20(_token).approve(address(this), 1000);
         bool ok = transferMoney(
             address(this),
             msg.sender,
-            amountToWithdraw / (10 ** decimals),
+            divideByDecimals(decimals, amountToWithdraw),
             _token
         );
 
@@ -103,7 +97,7 @@ contract TimeUnlockedERC20 is MyERC20 {
         emit DepositWithdrawn(
             msg.sender,
             _token,
-            amountToWithdraw,
+            divideByDecimals(decimals, amountToWithdraw),
             block.timestamp
         );
     }
@@ -128,5 +122,12 @@ contract TimeUnlockedERC20 is MyERC20 {
         uint256 _amount
     ) internal pure returns (uint256) {
         return _amount * (10 ** _decimals);
+    }
+
+    function divideByDecimals(
+        uint8 _decimals,
+        uint256 _amount
+    ) internal pure returns (uint256) {
+        return _amount / (10 ** _decimals);
     }
 }
