@@ -2,14 +2,18 @@
 pragma solidity ^0.8.21;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-
+import {MyERC20} from "./MyERC20.sol";
 error TimeUnlockedERC20__AmountNotEnough(string message);
 error TimeUnlockedERC20__WithoutDeposit(string message);
-error TimeUnlockedERC20__NotEnoughMoney(string message);
+error TimeUnlockedERC20__NotEnoughMoney(
+    string message,
+    uint256 amount,
+    uint256 currentAmount
+);
 error TimeUnlockedERC20__DepositFailed(string message);
 error TimeUnlockedERC20__PaymentFailed(string message);
 
-contract TimeUnlockedERC20 {
+contract TimeUnlockedERC20 is MyERC20 {
     mapping(address => mapping(address => Deposit))
         public s_userToTokenToDeposit;
     uint256 public constant NUM_SECONDS_ONE_DAY = 86_400;
@@ -48,8 +52,11 @@ contract TimeUnlockedERC20 {
         if (!ok) {
             revert TimeUnlockedERC20__DepositFailed("Deposit failed");
         }
-
-        s_userToTokenToDeposit[_receiver][_token].amount += _amount;
+        uint8 decimals = MyERC20(_token).decimals();
+        s_userToTokenToDeposit[_receiver][_token].amount += multiplyByDecimals(
+            decimals,
+            _amount
+        );
         s_userToTokenToDeposit[_receiver][_token].timestamp = block.timestamp;
 
         emit DepositCreated(_receiver, _token, _amount, block.timestamp);
@@ -61,25 +68,29 @@ contract TimeUnlockedERC20 {
                 "You don't have a deposit"
             );
         }
+        uint8 decimals = MyERC20(_token).decimals();
+        uint256 currentAmount = s_userToTokenToDeposit[msg.sender][_token]
+            .amount;
 
-        uint256 timePassed = (block.timestamp -
-            s_userToTokenToDeposit[msg.sender][_token].timestamp) /
+        uint256 amountToWithdraw = currentAmount /
+            (
+                (block.timestamp -
+                    s_userToTokenToDeposit[msg.sender][_token].timestamp)
+            ) /
             NUM_SECONDS_ONE_DAY;
-        uint256 amountToWithdraw = s_userToTokenToDeposit[msg.sender][_token]
-            .amount / timePassed;
 
-        if (
-            s_userToTokenToDeposit[msg.sender][_token].amount < amountToWithdraw
-        ) {
+        if (currentAmount < amountToWithdraw) {
             revert TimeUnlockedERC20__NotEnoughMoney(
-                "You have no enough money to withdraw"
+                "You have no enough money to withdraw",
+                amountToWithdraw,
+                currentAmount
             );
         }
-
+        IERC20(_token).approve(address(this), 1000);
         bool ok = transferMoney(
             address(this),
             msg.sender,
-            amountToWithdraw,
+            amountToWithdraw / (10 ** decimals),
             _token
         );
 
@@ -110,5 +121,12 @@ contract TimeUnlockedERC20 {
         } catch {
             return false;
         }
+    }
+
+    function multiplyByDecimals(
+        uint8 _decimals,
+        uint256 _amount
+    ) internal pure returns (uint256) {
+        return _amount * (10 ** _decimals);
     }
 }
