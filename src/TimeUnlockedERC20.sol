@@ -80,7 +80,7 @@ contract TimeUnlockedERC20 is MyERC20 {
                 "You have no enough money to withdraw"
             );
         }
-        IERC20(_token).approve(address(this), 1000);
+        IERC20(_token).approve(address(this), amountToWithdraw);
         bool ok = transferMoney(
             address(this),
             msg.sender,

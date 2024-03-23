@@ -9,6 +9,8 @@ contract TimeUnlockedERC20Test is Test {
     MyERC20 public erc20;
     TimeUnlockedERC20 public timeUnlockedERC20;
     uint256 public constant NUM_SECONDS_ONE_DAY = 86_400;
+    uint256 constant AMOUNT_LIMIT =
+        100_000_000_000_000_000_000_000_000_000_000_000_000_000_000_000_000_000_000_000;
     address public OWNER = makeAddr("OWNER");
     function setUp() public {
         erc20 = new MyERC20();
@@ -17,7 +19,7 @@ contract TimeUnlockedERC20Test is Test {
 
     function testCreateDeposit(uint256 depositAmount) public {
         vm.startPrank(OWNER);
-        vm.assume(depositAmount < 100_000_000 && depositAmount > 0);
+        vm.assume(depositAmount < AMOUNT_LIMIT && depositAmount > 0);
         erc20.mint(OWNER, depositAmount);
         erc20.approve(address(timeUnlockedERC20), depositAmount);
         uint8 decimals = erc20.decimals();
@@ -31,7 +33,7 @@ contract TimeUnlockedERC20Test is Test {
     }
 
     function testWithdraw(uint256 amount) public {
-        vm.assume(amount < 100_000_000 && amount > 0);
+        vm.assume(amount < AMOUNT_LIMIT && amount > 0);
         vm.startPrank(OWNER);
         erc20.mint(OWNER, amount);
         erc20.approve(address(timeUnlockedERC20), amount);
